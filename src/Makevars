@@ -1,0 +1,3 @@
+OBJECTS = cdmm_c.o
+PKG_CFLAGS = -Wall -O2
+PKG_LIBS =
