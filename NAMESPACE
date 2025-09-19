@@ -2,7 +2,9 @@
 
 export(cd.test)
 export(cdmm)
+export(coat)
 export(cv.cdmm)
+export(cv.coat)
 export(gic.cdmm)
 export(stab.cdmm)
 useDynLib(compotools,cdmm_c)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/cdmm.R
 \name{cv.cdmm}
 \alias{cv.cdmm}
-\title{Title}
+\title{Cross-Validation for CDMM Model Selection}
 \usage{
 cv.cdmm(
   y,
@@ -16,8 +16,33 @@ cv.cdmm(
 )
 }
 \arguments{
-\item{constr}{}
+\item{y}{numeric vector of the response variable}
+
+\item{x}{n x p composition data matrix of predictor variables (rows = samples, columns = variables)}
+
+\item{lam}{sequence of tuning parameters for regularization (passed to \code{cdmm} function)}
+
+\item{foldid}{optional integer vector specifying fold assignments for each sample. If missing,
+folds are randomly generated (see \code{nfold})}
+
+\item{nfold}{integer number of folds for cross-validation (default: 10)}
+
+\item{refit}{logical indicating whether to refit the model on non-validation folds with non-zero
+coefficients (default: FALSE, skips refitting)}
+
+\item{type}{character specifying the optimal lambda selection rule: "min" (default, selects lambda
+with minimum CV error) or "1se" (selects the largest lambda within 1 SE of the minimum CV error)}
+
+\item{constr}{logical indicating whether to enforce compositional constraints in CDMM:
+TRUE (default, uses standard CDMM) or FALSE (disables constraints via \code{mu=0})}
+}
+\value{
+a list containing the following components:
+\item{bet}{optimal coefficient vector corresponding to the selected lambda}
+\item{lam}{optimal tuning parameter (lambda) selected by cross-validation}
+\item{int}{intercept term corresponding to the optimal lambda (from CDMM results)}
+\item{foldid}{integer vector of fold assignments used for cross-validation (for reproducibility)}
 }
 \description{
-Title
+Cross-Validation for CDMM Model Selection
 }

@@ -7,7 +7,6 @@
 #' @return the p-value for the test
 #' @export
 #'
-#' @examples
 cd.test <- function(x1,x2,paired=FALSE){
   if(paired){
     if(dim(x1)[1]!=dim(x2)[1]){

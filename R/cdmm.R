@@ -2,23 +2,29 @@
 #' @keywords internal
 NULL
 
-#' Title
+#' Variable selection in regression with compositional covariates
 #'
-#' @param y
-#' @param x
-#' @param lam
-#' @param nlam
-#' @param rlam
-#' @param mu
-#' @param std
-#' @param maxv
-#' @param maxit
-#' @param tol
+#' @param y numeric vector for response variable
+#' @param x n x p composition data matrix for predictor variable (row/column is sample/variable)
+#' @param lam user-specified sequence of tuning parameters for regularization. If missing,
+#'            an automatic sequence is generated based on data
+#' @param nlam number of lambda values in the automatic sequence (default: 100)
+#' @param rlam ratio of the smallest to largest lambda in the automatic sequence (default: 1/nlam)
+#' @param mu regularization parameter for the compositional constraint (default: 1)
+#' @param std logical indicator for data standardization: TRUE (default) standardizes predictors
+#'            and centers the response; FALSE uses raw data
+#' @param maxv maximum number of variables allowed in the model (default: 0.4*length(y))
+#' @param maxit vector of two integers specifying maximum iterations for outer and inner loops
+#'              (default: c(20, 50))
+#' @param tol vector of two numeric values specifying convergence tolerances for outer and inner
+#'            loops (default: c(1e-4, 1e-7))
 #'
-#' @return
+#' @return a list containing the following components:
+#'   \item{sol}{matrix of coefficient estimates, with columns corresponding to lambda values}
+#'   \item{lam}{sequence of lambda values used in the model}
+#'   \item{int}{intercept term (only included if std=TRUE)}
 #' @export
 #'
-#' @examples
 cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, maxv=0.4*length(y), maxit=c(20, 50), tol=c(1e-4, 1e-7)) {
 	if (std) {
 		y <- scale(y, scale=FALSE)
@@ -37,18 +43,20 @@ cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, maxv=0.4*leng
 	res
 }
 
-#' Title
+#' Compute GIC for CDMM Model Selection
+#' @param y numeric vector of the response variable
+#' @param x n x p composition data matrix of predictor variables (rows = samples, columns = variables)
+#' @param lam sequence of tuning parameters for regularization (passed to \code{cdmm} function)
+#' @param type character specifying the GIC type: "bic" (default, Bayesian Information Criterion),
+#'             "aic" (Akaike Information Criterion), or "ft" (Frequentist T-test criterion)
+#' @param constr logical indicating whether to enforce compositional constraints in CDMM:
+#'               TRUE (default, uses standard CDMM) or FALSE (disables constraints via \code{mu=0})
 #'
-#' @param y
-#' @param x
-#' @param lam
-#' @param type
-#' @param constr
-#'
-#' @return
+#' @return a list containing the following components:
+#'   \item{bet}{optimal coefficient vector corresponding to the lambda with minimum GIC}
+#'   \item{lam}{optimal tuning parameter (lambda) selected by minimum GIC}
+#'   \item{int}{intercept term corresponding to the optimal lambda (from CDMM results)}
 #' @export
-#'
-#' @examples
 gic.cdmm <- function(y, x, lam, type="bic", constr=TRUE) {
 	if (constr)
 		res <- cdmm(y, x, lam)
@@ -65,21 +73,28 @@ gic.cdmm <- function(y, x, lam, type="bic", constr=TRUE) {
 	list(bet=res$sol[, ilam], lam=res$lam[ilam], int=res$int[ilam])
 }
 
-#' Title
+#' Cross-Validation for CDMM Model Selection
 #'
-#' @param y
-#' @param x
-#' @param lam
-#' @param foldid
-#' @param nfold
-#' @param refit
-#' @param type
-#' @param constr
+#' @param y numeric vector of the response variable
+#' @param x n x p composition data matrix of predictor variables (rows = samples, columns = variables)
+#' @param lam sequence of tuning parameters for regularization (passed to \code{cdmm} function)
+#' @param foldid optional integer vector specifying fold assignments for each sample. If missing,
+#'               folds are randomly generated (see \code{nfold})
+#' @param nfold integer number of folds for cross-validation (default: 10)
+#' @param refit logical indicating whether to refit the model on non-validation folds with non-zero
+#'              coefficients (default: FALSE, skips refitting)
+#' @param type character specifying the optimal lambda selection rule: "min" (default, selects lambda
+#'             with minimum CV error) or "1se" (selects the largest lambda within 1 SE of the minimum CV error)
+#' @param constr logical indicating whether to enforce compositional constraints in CDMM:
+#'               TRUE (default, uses standard CDMM) or FALSE (disables constraints via \code{mu=0})
 #'
-#' @return
+#' @return a list containing the following components:
+#'   \item{bet}{optimal coefficient vector corresponding to the selected lambda}
+#'   \item{lam}{optimal tuning parameter (lambda) selected by cross-validation}
+#'   \item{int}{intercept term corresponding to the optimal lambda (from CDMM results)}
+#'   \item{foldid}{integer vector of fold assignments used for cross-validation (for reproducibility)}
+#'
 #' @export
-#'
-#' @examples
 cv.cdmm <- function(y, x, lam, foldid, nfold=10, refit=FALSE, type="min", constr=TRUE) {
 	if (constr)
 		res <- cdmm(y, x, lam)
@@ -118,22 +133,28 @@ cv.cdmm <- function(y, x, lam, foldid, nfold=10, refit=FALSE, type="min", constr
 	list(bet=res$sol[, ilam], lam=res$lam[ilam], int=res$int[ilam], foldid=foldid)
 }
 
-#' Title
+#' Stability Selection for CDMM
 #'
-#' @param y
-#' @param x
-#' @param lam
-#' @param nlam
-#' @param rlam
-#' @param nsample
-#' @param nsub
-#' @param constr
-#' @param seed
 #'
-#' @return
+#' @param y numeric vector of the response variable
+#' @param x n x p composition data matrix of predictor variables (rows = samples, columns = variables)
+#' @param lam optional sequence of tuning parameters for regularization. If missing, an automatic
+#'            sequence is generated (see \code{nlam} and \code{rlam})
+#' @param nlam integer number of lambda values in the automatic sequence (default: 100, only used if \code{lam} is missing)
+#' @param rlam ratio of the smallest to largest lambda in the automatic sequence (default: 1/nlam, only used if \code{lam} is missing)
+#' @param nsample integer number of subsamples to generate for stability assessment (default: 100)
+#' @param nsub integer size of each subsample (default: 50% of total samples, \code{floor(0.5*length(y))})
+#' @param constr logical indicating whether to enforce compositional constraints in CDMM:
+#'               TRUE (default, uses standard CDMM) or FALSE (disables constraints via \code{mu=0})
+#' @param seed Integer random seed for reproducible subsample generation (default: 213)
+#'
+#' @return a list containing the following components:
+#'   \item{path}{p x nlam matrix of selection frequencies: each entry (i,j) is the proportion of subsamples
+#'               where predictor i was selected at lambda j}
+#'   \item{prob}{numeric vector of maximum selection probabilities: each entry is the highest frequency
+#'               of selection for a predictor across all lambda values}
+#'
 #' @export
-#'
-#' @examples
 stab.cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, nsample=100, nsub=floor(0.5*length(y)), constr=TRUE, seed=213) {
 	set.seed(seed)
 	if (missing(lam)) {

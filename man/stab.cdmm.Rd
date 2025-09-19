@@ -2,7 +2,7 @@
 % Please edit documentation in R/cdmm.R
 \name{stab.cdmm}
 \alias{stab.cdmm}
-\title{Title}
+\title{Stability Selection for CDMM}
 \usage{
 stab.cdmm(
   y,
@@ -17,8 +17,33 @@ stab.cdmm(
 )
 }
 \arguments{
-\item{seed}{}
+\item{y}{numeric vector of the response variable}
+
+\item{x}{n x p composition data matrix of predictor variables (rows = samples, columns = variables)}
+
+\item{lam}{optional sequence of tuning parameters for regularization. If missing, an automatic
+sequence is generated (see \code{nlam} and \code{rlam})}
+
+\item{nlam}{integer number of lambda values in the automatic sequence (default: 100, only used if \code{lam} is missing)}
+
+\item{rlam}{ratio of the smallest to largest lambda in the automatic sequence (default: 1/nlam, only used if \code{lam} is missing)}
+
+\item{nsample}{integer number of subsamples to generate for stability assessment (default: 100)}
+
+\item{nsub}{integer size of each subsample (default: 50\% of total samples, \code{floor(0.5*length(y))})}
+
+\item{constr}{logical indicating whether to enforce compositional constraints in CDMM:
+TRUE (default, uses standard CDMM) or FALSE (disables constraints via \code{mu=0})}
+
+\item{seed}{Integer random seed for reproducible subsample generation (default: 213)}
+}
+\value{
+a list containing the following components:
+\item{path}{p x nlam matrix of selection frequencies: each entry (i,j) is the proportion of subsamples
+where predictor i was selected at lambda j}
+\item{prob}{numeric vector of maximum selection probabilities: each entry is the highest frequency
+of selection for a predictor across all lambda values}
 }
 \description{
-Title
+Stability Selection for CDMM
 }

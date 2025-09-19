@@ -2,7 +2,7 @@
 % Please edit documentation in R/cdmm.R
 \name{cdmm}
 \alias{cdmm}
-\title{Title}
+\title{Variable selection in regression with compositional covariates}
 \usage{
 cdmm(
   y,
@@ -18,8 +18,36 @@ cdmm(
 )
 }
 \arguments{
-\item{tol}{}
+\item{y}{numeric vector for response variable}
+
+\item{x}{n x p composition data matrix for predictor variable (row/column is sample/variable)}
+
+\item{lam}{user-specified sequence of tuning parameters for regularization. If missing,
+an automatic sequence is generated based on data}
+
+\item{nlam}{number of lambda values in the automatic sequence (default: 100)}
+
+\item{rlam}{ratio of the smallest to largest lambda in the automatic sequence (default: 1/nlam)}
+
+\item{mu}{regularization parameter for the compositional constraint (default: 1)}
+
+\item{std}{logical indicator for data standardization: TRUE (default) standardizes predictors
+and centers the response; FALSE uses raw data}
+
+\item{maxv}{maximum number of variables allowed in the model (default: 0.4*length(y))}
+
+\item{maxit}{vector of two integers specifying maximum iterations for outer and inner loops
+(default: c(20, 50))}
+
+\item{tol}{vector of two numeric values specifying convergence tolerances for outer and inner
+loops (default: c(1e-4, 1e-7))}
+}
+\value{
+a list containing the following components:
+\item{sol}{matrix of coefficient estimates, with columns corresponding to lambda values}
+\item{lam}{sequence of lambda values used in the model}
+\item{int}{intercept term (only included if std=TRUE)}
 }
 \description{
-Title
+Variable selection in regression with compositional covariates
 }

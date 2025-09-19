@@ -2,13 +2,29 @@
 % Please edit documentation in R/cdmm.R
 \name{gic.cdmm}
 \alias{gic.cdmm}
-\title{Title}
+\title{Compute GIC for CDMM Model Selection}
 \usage{
 gic.cdmm(y, x, lam, type = "bic", constr = TRUE)
 }
 \arguments{
-\item{constr}{}
+\item{y}{numeric vector of the response variable}
+
+\item{x}{n x p composition data matrix of predictor variables (rows = samples, columns = variables)}
+
+\item{lam}{sequence of tuning parameters for regularization (passed to \code{cdmm} function)}
+
+\item{type}{character specifying the GIC type: "bic" (default, Bayesian Information Criterion),
+"aic" (Akaike Information Criterion), or "ft" (Frequentist T-test criterion)}
+
+\item{constr}{logical indicating whether to enforce compositional constraints in CDMM:
+TRUE (default, uses standard CDMM) or FALSE (disables constraints via \code{mu=0})}
+}
+\value{
+a list containing the following components:
+\item{bet}{optimal coefficient vector corresponding to the lambda with minimum GIC}
+\item{lam}{optimal tuning parameter (lambda) selected by minimum GIC}
+\item{int}{intercept term corresponding to the optimal lambda (from CDMM results)}
 }
 \description{
-Title
+Compute GIC for CDMM Model Selection
 }
