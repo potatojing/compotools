@@ -2,7 +2,8 @@
 % Please edit documentation in R/cdmm.R
 \name{cdmm}
 \alias{cdmm}
-\title{Variable selection in regression with compositional covariates}
+\title{Variable selection in regression with compositional covariates
+This function performs variable selection in regression models where the predictor variables are compositional data. Compositional data refers to vectors of non-negative values that sum to 1. The function implements a regularization approach to select important compositional predictors while accounting for the unique constraints of compositional data.}
 \usage{
 cdmm(
   y,
@@ -23,7 +24,7 @@ cdmm(
 \item{x}{n x p composition data matrix for predictor variable (row/column is sample/variable)}
 
 \item{lam}{user-specified sequence of tuning parameters for regularization. If missing,
-an automatic sequence is generated based on data}
+an automatic sequence is generated based on data (see \code{nlam} and \code{rlam}).}
 
 \item{nlam}{number of lambda values in the automatic sequence (default: 100)}
 
@@ -44,10 +45,11 @@ loops (default: c(1e-4, 1e-7))}
 }
 \value{
 a list containing the following components:
-\item{sol}{matrix of coefficient estimates, with columns corresponding to lambda values}
+\item{bet}{matrix of coefficient estimates, with columns corresponding to lambda values}
 \item{lam}{sequence of lambda values used in the model}
-\item{int}{intercept term (only included if std=TRUE)}
+\item{int}{intercept term (all are 0 if std=FALSE)}
 }
 \description{
 Variable selection in regression with compositional covariates
+This function performs variable selection in regression models where the predictor variables are compositional data. Compositional data refers to vectors of non-negative values that sum to 1. The function implements a regularization approach to select important compositional predictors while accounting for the unique constraints of compositional data.
 }

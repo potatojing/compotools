@@ -3,11 +3,11 @@
 NULL
 
 #' Variable selection in regression with compositional covariates
-#'
+#' This function performs variable selection in regression models where the predictor variables are compositional data. Compositional data refers to vectors of non-negative values that sum to 1. The function implements a regularization approach to select important compositional predictors while accounting for the unique constraints of compositional data.
 #' @param y numeric vector for response variable
 #' @param x n x p composition data matrix for predictor variable (row/column is sample/variable)
 #' @param lam user-specified sequence of tuning parameters for regularization. If missing,
-#'            an automatic sequence is generated based on data
+#'            an automatic sequence is generated based on data (see \code{nlam} and \code{rlam}).
 #' @param nlam number of lambda values in the automatic sequence (default: 100)
 #' @param rlam ratio of the smallest to largest lambda in the automatic sequence (default: 1/nlam)
 #' @param mu regularization parameter for the compositional constraint (default: 1)
@@ -20,9 +20,9 @@ NULL
 #'            loops (default: c(1e-4, 1e-7))
 #'
 #' @return a list containing the following components:
-#'   \item{sol}{matrix of coefficient estimates, with columns corresponding to lambda values}
+#'   \item{bet}{matrix of coefficient estimates, with columns corresponding to lambda values}
 #'   \item{lam}{sequence of lambda values used in the model}
-#'   \item{int}{intercept term (only included if std=TRUE)}
+#'   \item{int}{intercept term (all are 0 if std=FALSE)}
 #' @export
 #'
 cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, maxv=0.4*length(y), maxit=c(20, 50), tol=c(1e-4, 1e-7)) {
@@ -37,9 +37,10 @@ cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, maxv=0.4*leng
 		lam <- lam.max*exp(seq(0, log(rlam), length=nlam))
 	}
 	res <- .Call("cdmm_c", y, x, fac, lam, mu, maxv, as.integer(maxit), tol)
-	names(res) <- c("sol", "lam")
-	res$sol <- res$sol*fac
-	if (std) res$int <- attr(y, "scaled:center") - drop(crossprod(res$sol, attr(x, "scaled:center")))
+	names(res) <- c("bet", "lam")
+	res$bet <- res$bet*fac
+	if (std) res$int <- attr(y, "scaled:center") - drop(crossprod(res$bet, attr(x, "scaled:center")))
+	else res$int <- rep(0, length(res$lam))
 	res
 }
 
@@ -77,17 +78,20 @@ gic.cdmm <- function(y, x, lam, type="bic", constr=TRUE) {
 #'
 #' @param y numeric vector of the response variable
 #' @param x n x p composition data matrix of predictor variables (rows = samples, columns = variables)
-#' @param lam sequence of tuning parameters for regularization (passed to \code{cdmm} function)
+#' @param lam sequence of tuning parameters for regularization (passed to \code{cdmm} function). If missing,
+#'            an automatic sequence is generated based on data (see \code{nlam} and \code{rlam}).
+#' @param nlam number of lambda values in the automatic sequence (default: 100)
+#' @param rlam ratio of the smallest to largest lambda in the automatic sequence (default: 1/nlam)
+#' @param mu regularization parameter for the compositional constraint, passed to \code{cdmm} functionm (default: 1).
+#' @param std logical indicator for data standardization: TRUE (default) standardizes predictors
+#'            and centers the response; FALSE uses raw data
 #' @param foldid optional integer vector specifying fold assignments for each sample. If missing,
 #'               folds are randomly generated (see \code{nfold})
-#' @param nfold integer number of folds for cross-validation (default: 10)
+#' @param nfold integer number of folds for cross-validation (default: 5)
 #' @param refit logical indicating whether to refit the model on non-validation folds with non-zero
 #'              coefficients (default: FALSE, skips refitting)
 #' @param type character specifying the optimal lambda selection rule: "min" (default, selects lambda
 #'             with minimum CV error) or "1se" (selects the largest lambda within 1 SE of the minimum CV error)
-#' @param constr logical indicating whether to enforce compositional constraints in CDMM:
-#'               TRUE (default, uses standard CDMM) or FALSE (disables constraints via \code{mu=0})
-#'
 #' @return a list containing the following components:
 #'   \item{bet}{optimal coefficient vector corresponding to the selected lambda}
 #'   \item{lam}{optimal tuning parameter (lambda) selected by cross-validation}
@@ -95,42 +99,44 @@ gic.cdmm <- function(y, x, lam, type="bic", constr=TRUE) {
 #'   \item{foldid}{integer vector of fold assignments used for cross-validation (for reproducibility)}
 #'
 #' @export
-cv.cdmm <- function(y, x, lam, foldid, nfold=10, refit=FALSE, type="min", constr=TRUE) {
-	if (constr)
-		res <- cdmm(y, x, lam)
-	else
-		res <- cdmm(y, x, lam, mu=0, maxit=c(50, 1))
+cv.cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, foldid, nfold=5, refit=FALSE, type="min") {
+
+  if (missing(lam))
+    res <- cdmm(y, x, mu=mu, std=std)
+  else
+    res <- cdmm(y, x, lam, mu=mu, std=std)
+
 	if (missing(foldid)) foldid <- sample(rep(1:nfold, length=length(y)))
 	pred <- matrix(, nfold, length(res$lam))
 	for (i in 1:nfold) {
 		yt <- y[foldid != i]; xt <- x[foldid != i, ]
 		yv <- y[foldid == i]; xv <- x[foldid == i, ]
 		if (constr) {
-			fit <- cdmm(yt, xt, res$lam, maxv=Inf)
+			fit <- cdmm(yt, xt, res$lam, mu=mu, std=std, maxv=Inf)
 			if (refit) for (j in 1:length(res$lam)) {
-				supp <- fit$sol[, j] != 0
+				supp <- fit$bet[, j] != 0
 				if (any(supp)) {
-					ans <- cdmm(yt, as.matrix(xt[, supp]), 0, maxv=Inf)
-					fit$sol[supp, j] <- ans$sol; fit$int[j] <- ans$int
+					ans <- cdmm(yt, as.matrix(xt[, supp]), 0, mu=mu, std=std, maxv=Inf)
+					fit$bet[supp, j] <- ans$bet; fit$int[j] <- ans$int
 				}
 			}
 		} else {
-			fit <- cdmm(yt, xt, res$lam, mu=0, maxv=Inf, maxit=c(50, 1))
+			fit <- cdmm(yt, xt, res$lam, mu=0, std=std, maxv=Inf, maxit=c(50, 1))
  			if (refit) for (j in 1:length(res$lam)) {
 				supp <- fit$sol[, j] != 0
 				if (any(supp)) {
-					ans <- cdmm(yt, as.matrix(xt[, supp]), 0, mu=0, maxv=Inf, maxit=c(50, 1))
-					fit$sol[supp, j] <- ans$sol; fit$int[j] <- ans$int
+					ans <- cdmm(yt, as.matrix(xt[, supp]), 0, mu=0, std=std, maxv=Inf, maxit=c(50, 1))
+					fit$bet[supp, j] <- ans$bet; fit$int[j] <- ans$int
 				}
 			}
 		}
-		pred[i, ] <- colSums((yv - matrix(fit$int, length(yv), length(res$lam), byrow=TRUE) - xv %*% fit$sol)^2)
+		pred[i, ] <- colSums((yv - matrix(fit$int, length(yv), length(res$lam), byrow=TRUE) - xv %*% fit$bet)^2)
 	}
 	cvm <- colSums(pred)/length(y)
 	cvse <- sqrt((colSums(pred^2) - length(y)*cvm^2)/(length(y) - 1))
 	imin <- which.min(cvm)
 	ilam <- switch(type, min=imin, "1se"=match(TRUE, cvm <= cvm[imin] + cvse[imin]))
-	list(bet=res$sol[, ilam], lam=res$lam[ilam], int=res$int[ilam], foldid=foldid)
+	list(bet=res$bet[, ilam], lam=res$lam[ilam], int=res$int[ilam], foldid=foldid)
 }
 
 #' Stability Selection for CDMM

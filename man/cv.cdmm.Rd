@@ -8,8 +8,12 @@ cv.cdmm(
   y,
   x,
   lam,
+  nlam = 100,
+  rlam = 1/nlam,
+  mu = 1,
+  std = TRUE,
   foldid,
-  nfold = 10,
+  nfold = 5,
   refit = FALSE,
   type = "min",
   constr = TRUE
@@ -20,21 +24,28 @@ cv.cdmm(
 
 \item{x}{n x p composition data matrix of predictor variables (rows = samples, columns = variables)}
 
-\item{lam}{sequence of tuning parameters for regularization (passed to \code{cdmm} function)}
+\item{lam}{sequence of tuning parameters for regularization (passed to \code{cdmm} function). If missing,
+an automatic sequence is generated based on data (see \code{nlam} and \code{rlam}).}
+
+\item{nlam}{number of lambda values in the automatic sequence (default: 100)}
+
+\item{rlam}{ratio of the smallest to largest lambda in the automatic sequence (default: 1/nlam)}
+
+\item{mu}{regularization parameter for the compositional constraint, passed to \code{cdmm} functionm (default: 1).}
+
+\item{std}{logical indicator for data standardization: TRUE (default) standardizes predictors
+and centers the response; FALSE uses raw data}
 
 \item{foldid}{optional integer vector specifying fold assignments for each sample. If missing,
 folds are randomly generated (see \code{nfold})}
 
-\item{nfold}{integer number of folds for cross-validation (default: 10)}
+\item{nfold}{integer number of folds for cross-validation (default: 5)}
 
 \item{refit}{logical indicating whether to refit the model on non-validation folds with non-zero
 coefficients (default: FALSE, skips refitting)}
 
 \item{type}{character specifying the optimal lambda selection rule: "min" (default, selects lambda
 with minimum CV error) or "1se" (selects the largest lambda within 1 SE of the minimum CV error)}
-
-\item{constr}{logical indicating whether to enforce compositional constraints in CDMM:
-TRUE (default, uses standard CDMM) or FALSE (disables constraints via \code{mu=0})}
 }
 \value{
 a list containing the following components:
