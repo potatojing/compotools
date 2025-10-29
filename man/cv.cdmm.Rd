@@ -10,13 +10,10 @@ cv.cdmm(
   lam,
   nlam = 100,
   rlam = 1/nlam,
-  mu = 1,
-  std = TRUE,
   foldid,
   nfold = 5,
   refit = FALSE,
-  type = "min",
-  constr = TRUE
+  type = "min"
 )
 }
 \arguments{
@@ -30,11 +27,6 @@ an automatic sequence is generated based on data (see \code{nlam} and \code{rlam
 \item{nlam}{number of lambda values in the automatic sequence (default: 100)}
 
 \item{rlam}{ratio of the smallest to largest lambda in the automatic sequence (default: 1/nlam)}
-
-\item{mu}{regularization parameter for the compositional constraint, passed to \code{cdmm} functionm (default: 1).}
-
-\item{std}{logical indicator for data standardization: TRUE (default) standardizes predictors
-and centers the response; FALSE uses raw data}
 
 \item{foldid}{optional integer vector specifying fold assignments for each sample. If missing,
 folds are randomly generated (see \code{nfold})}
