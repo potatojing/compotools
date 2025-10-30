@@ -51,16 +51,16 @@ coat <- function(x, lam, nlam=100, soft = 1){
 #'   \item{lambda}{optimal tuning parameter selected via cross-validation}
 #' @export
 #'
-cv.coat <- function(x, lam, nfold = 5, foldid=NULL, soft = 1){
+cv.coat <- function(x, lam, nlam=100, nfold = 5, foldid=NULL, soft = 1){
   startTime <- proc.time()
   p <- ncol(x)
   clrX <- log(x) - rowSums(log(x)) %*%matrix(1,1,p) / p
 
   if(missing(lam)){
-    coatPred <- adaptThresoldCov(clrX, nFolder=nfold, foldid=foldid, soft = soft, autoGrid = TRUE)
+    coatPred <- adaptThresoldCov(clrX, nFolder=nfold, foldid=foldid, nGrid=nlam, soft = soft, autoGrid = TRUE)
   }
   else{
-    coatPred <- adaptThresoldCov(clrX, nFolder=nfold, foldid=foldid, soft = soft, autoGrid = FALSE, grid = lam)
+    coatPred <- adaptThresoldCov(clrX, nFolder=nfold, foldid=foldid, nGrid=nlam, soft = soft, autoGrid = FALSE, grid = lam)
   }
   sigma <- coatPred$sigma
   corr <- coatPred$corr
@@ -81,11 +81,11 @@ cv.coat <- function(x, lam, nfold = 5, foldid=NULL, soft = 1){
 #        corr ------ correlation estimation based on adaptive thresholding
 #----------------------------------------------------------------------------------------
 
-adaptThresoldCov <- function(x, nFolder = 5, foldid=NULL, soft = 1, autoGrid=TRUE, grid=c()){
+adaptThresoldCov <- function(x, nFolder = 5, foldid=NULL, nGrid=100, soft = 1, autoGrid=TRUE, grid=c()){
   n <- nrow(x)
   p <- ncol(x)
   # Set the grid for the choice of tuning parameter
-  nGrid <- 100
+
   gridInfo <- adaptThresholdRange(x)
   if(autoGrid){
     grid <- gridInfo$lower + (gridInfo$upper - gridInfo$lower)*rep(1:nGrid)/nGrid
