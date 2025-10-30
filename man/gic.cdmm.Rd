@@ -2,22 +2,36 @@
 % Please edit documentation in R/cdmm.R
 \name{gic.cdmm}
 \alias{gic.cdmm}
-\title{Compute GIC for CDMM Model Selection}
+\title{CDMM Model Selection By GIC}
 \usage{
-gic.cdmm(y, x, lam, type = "bic", constr = TRUE)
+gic.cdmm(
+  y,
+  x,
+  lam,
+  nlam = 100,
+  rlam = 1/nlam,
+  mu = 1,
+  std = TRUE,
+  type = "bic"
+)
 }
 \arguments{
 \item{y}{numeric vector of the response variable}
 
-\item{x}{n x p composition data matrix of predictor variables (rows = samples, columns = variables)}
+\item{x}{n x p logged composition data matrix of predictor variables (rows = samples, columns = variables)}
 
-\item{lam}{sequence of tuning parameters for regularization (passed to \code{cdmm} function)}
+\item{lam}{sequence of tuning parameters for regularization (passed to \code{cdmm} function). The function will choose the optimized one in the parameter sequence. If missing,an automatic sequence is generated based on data (see \code{nlam} and \code{rlam}).}
+
+\item{nlam}{number of lambda values in the automatic sequence (default: 100)}
+
+\item{rlam}{ratio of the smallest to largest lambda in the automatic sequence (default: 1/nlam)}
+
+\item{mu}{regularization parameter for the compositional constraint, passed to \code{cdmm} functionm (default: 1).}
+
+\item{std}{logical indicator for data standardization: TRUE (default) standardizes predictors and centers the response; FALSE uses raw data}
 
 \item{type}{character specifying the GIC type: "bic" (default, Bayesian Information Criterion),
 "aic" (Akaike Information Criterion), or "ft" (Frequentist T-test criterion)}
-
-\item{constr}{logical indicating whether to enforce compositional constraints in CDMM:
-TRUE (default, uses standard CDMM) or FALSE (disables constraints via \code{mu=0})}
 }
 \value{
 a list containing the following components:
@@ -26,5 +40,5 @@ a list containing the following components:
 \item{int}{intercept term corresponding to the optimal lambda (from CDMM results)}
 }
 \description{
-Compute GIC for CDMM Model Selection
+\code{gic.cdmm} is used to choose tunning parameter \code{lam} for \code{cdmm} by the way of GIC.
 }

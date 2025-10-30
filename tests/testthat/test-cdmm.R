@@ -45,3 +45,15 @@ test_that("cv.cdmm(std=FALSE) runs successfullly", {
 
   expect_true(all(c("bet", "lam", "int", "foldid") %in% names(result)))
 })
+
+test_that("gic.cdmm() runs successfullly", {
+
+  y <- rnorm(50)
+  x <- matrix(rnorm(50*10), nrow=50, ncol=10)
+  row_sums = rowSums(x)
+  x = t(t(x)/row_sums)
+
+  result <- gic.cdmm(y = y, x = x)
+
+  expect_true(all(c("bet", "lam", "int") %in% names(result)))
+})

@@ -2,8 +2,8 @@
 % Please edit documentation in R/cdmm.R
 \name{cdmm}
 \alias{cdmm}
-\title{Variable selection in regression with compositional covariates
-This function performs variable selection in regression models where the predictor variables are compositional data. Compositional data refers to vectors of non-negative values that sum to 1. The function implements a regularization approach to select important compositional predictors while accounting for the unique constraints of compositional data.}
+\title{Variable selection in regression with compositional variables
+\code{cdmm} is used to perform variable selection and fit a linear log-contrast model where the predictor variables are compositional data.}
 \usage{
 cdmm(
   y,
@@ -21,10 +21,9 @@ cdmm(
 \arguments{
 \item{y}{numeric vector for response variable}
 
-\item{x}{n x p composition data matrix for predictor variable (row/column is sample/variable)}
+\item{x}{n x p logged composition data matrix for predictor variable (row/column is sample/variable)}
 
-\item{lam}{user-specified sequence of tuning parameters for regularization. If missing,
-an automatic sequence is generated based on data (see \code{nlam} and \code{rlam}).}
+\item{lam}{user-specified sequence of tuning parameters for regularization. The function will fit a model for each lam in the sequence. If missing, an automatic sequence is generated based on data (see \code{nlam} and \code{rlam}). Use \code{cv.cdmm} or \code{gic.cdmm} to choose optimised parameter.}
 
 \item{nlam}{number of lambda values in the automatic sequence (default: 100)}
 
@@ -50,6 +49,6 @@ a list containing the following components:
 \item{int}{intercept term (all are 0 if std=FALSE)}
 }
 \description{
-Variable selection in regression with compositional covariates
-This function performs variable selection in regression models where the predictor variables are compositional data. Compositional data refers to vectors of non-negative values that sum to 1. The function implements a regularization approach to select important compositional predictors while accounting for the unique constraints of compositional data.
+Variable selection in regression with compositional variables
+\code{cdmm} is used to perform variable selection and fit a linear log-contrast model where the predictor variables are compositional data.
 }

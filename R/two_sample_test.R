@@ -1,16 +1,30 @@
-#' Title
-#'
+#' Two Samples Test for Compositional Data
+#' @description
+#' \code{cd.test} is used to assess whether there are significant differences between two compositional data samples.
 #' @param x1 a numeric vector of compositional data values
 #' @param x2 another numeric vector of compositional data values
-#' @param paired a logical indicating whether you want a paired test
+#' @param paired logical indicator for whether you want a paired test
 #'
 #' @return the p-value for the test
 #' @export
 #'
 cd.test <- function(x1,x2,paired=FALSE){
+
+  x1 = as.matrix(x1)
+  x2 = as.matrix(x2)
+
+  if(ncol(x1)!=ncol(x2)) stop("Error: x1 and x2 must have the same number of columns")
+  p = ncol(x1)
+
+  x1 <- log(x1)
+  x2 <- log(x2)
+
+  x1 <- x1 - 1/p*rowSums(x1)%*%matrix(1,1,p)
+  x2 <- x2 - 1/p*rowSums(x2)%*%matrix(1,1,p)
+
   if(paired){
-    if(dim(x1)[1]!=dim(x2)[1]){
-      stop(paste0("Error: x1 (", ncol(x1), " columns) and x2 (", ncol(x2), " columns) must have the same number of columns"))
+    if(dim(x1)[0]!=dim(x2)[0]){
+      stop(paste0("Error: for paired test, x1 (", nrow(x1), " rows) and x2 (", nrow(x2), " rows) must have the same number of rows"))
     }
     n <- dim(x1)[1]
     p <- ncol(x1)

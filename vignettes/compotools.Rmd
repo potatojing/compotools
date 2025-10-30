@@ -1,0 +1,88 @@
+---
+title: "Compotools Usage"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{compotools Usage}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Compositional Variable Selection and Regression
+\code{cdmm} is used to perform variable selection and fit a linear log-contrast model where the predictor variables are compositional data.
+
+First, we load example data. The data includes 98 samples, each for a healthy volunteer. The column \code{bmi} is the body mass index of the person. Other columns are DNA sequencing data of the volunteers' stool samples. We are interested in identifying a subset of important genera which is associated with BMI.
+```{r data, include=TRUE}
+library(compotools)
+data("bmi_gut") # load example data
+y = bmi_gut$bmi
+x = bmi_gut[,setdiff(colnames(bmi_gut), "bmi")]
+```
+
+```{r data_stat, include=TRUE}
+nreads = rowSums(x) # how many reads a sample has
+mean(nreads)
+sd(nreads)
+```
+Since the number of sequencing reads varied greatly across samples, these count data should not be used directly in a standard regression analysis. So we transform them into compositonal data and then log them. As we are to use log-contrast model to analyse the data, we replace zero counts by the maximum rounding error 0·5 before transforming them.
+```{r data_transform, include=TRUE}
+x[x==0] = 0.5
+x = x/rowSums(x)
+z = log(as.matrix(x))
+```
+Use \code{cv.cdmm} to choose optimized tunning parameter and fit a model.
+```{r cdmm, include=TRUE}
+set.seed(1234)
+n = nrow(z)
+train_idx = sample(1:n, size = floor(n*0.7))
+zt = z[train_idx,]
+yt = y[train_idx]
+zv = z[-train_idx,]
+yv = y[-train_idx]
+
+model = cv.cdmm(yt, zt)
+model
+```
+Genera corresponding to none-zero coefficients are selected.
+```{r corresponding_genera}
+colnames(x)[model$bet != 0]
+```
+We use \code{cdmm} with \code{lam = 0} to train a refitted model on the selected genera.
+```{r refitted_model, include=TRUE}
+selected = model$bet != 0
+refitted_model = cdmm(yt, zt[,selected], lam = 0)
+refitted_model
+```
+Use refitted model to predict bmi.
+```{r predict, include=TRUE, fig.width=6, fig.height=6, dpi=300}
+yp <- refitted_model$int + zv[, selected] %*% refitted_model$bet
+ran = range(c(yv, yp))
+
+plot(yv, yp, 
+     xlim = ran,
+     ylim = ran,
+     asp = 1,  
+     xlab = "observed BMI", ylab = "predicted BMI",
+     ) 
+abline(a = 0, b = 1, lty = 2, col = "grey") 
+```
+### Two Samples Test for Compositional Data 
+
+\code{cd.test} is used to assess whether there are significant differences between two compositional data samples. In this example, we test if lean people (BMI < 25) and obese ones (BMI >= 25) have the same gut microbiome composition .
+```{r test}
+xle = x[y<25,]
+xob = x[y>=25,]
+
+p.value = cd.test(xle, xob, paired = FALSE)
+print(p.value)
+```
+The test gives a p value of about 0.001, indicating a marked difference between two groups.
+
+### Covariance Estimate for Compositional Data
+
+```{r cv.coat}
+foldid = sample(1:nrow(xle)) %% 5
+rcv = cv.coat(xle, foldid = foldid)
+```

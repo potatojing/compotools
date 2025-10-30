@@ -2,12 +2,12 @@
 #' @keywords internal
 NULL
 
-#' Variable selection in regression with compositional covariates
-#' This function performs variable selection in regression models where the predictor variables are compositional data. Compositional data refers to vectors of non-negative values that sum to 1. The function implements a regularization approach to select important compositional predictors while accounting for the unique constraints of compositional data.
+#' Variable selection in regression with compositional variables
+#' @description
+#' \code{cdmm} is used to perform variable selection and fit a linear log-contrast model where the predictor variables are compositional data.
 #' @param y numeric vector for response variable
-#' @param x n x p composition data matrix for predictor variable (row/column is sample/variable)
-#' @param lam user-specified sequence of tuning parameters for regularization. If missing,
-#'            an automatic sequence is generated based on data (see \code{nlam} and \code{rlam}).
+#' @param x n x p logged composition data matrix for predictor variable (row/column is sample/variable)
+#' @param lam user-specified sequence of tuning parameters for regularization. The function will fit a model for each lam in the sequence. If missing, an automatic sequence is generated based on data (see \code{nlam} and \code{rlam}). Use \code{cv.cdmm} or \code{gic.cdmm} to choose optimised parameter.
 #' @param nlam number of lambda values in the automatic sequence (default: 100)
 #' @param rlam ratio of the smallest to largest lambda in the automatic sequence (default: 1/nlam)
 #' @param mu regularization parameter for the compositional constraint (default: 1)
@@ -44,40 +44,45 @@ cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, maxv=0.4*leng
 	res
 }
 
-#' Compute GIC for CDMM Model Selection
+#' CDMM Model Selection By GIC
+#' @description
+#' \code{gic.cdmm} is used to choose tunning parameter \code{lam} for \code{cdmm} by the way of GIC.
 #' @param y numeric vector of the response variable
-#' @param x n x p composition data matrix of predictor variables (rows = samples, columns = variables)
-#' @param lam sequence of tuning parameters for regularization (passed to \code{cdmm} function)
+#' @param x n x p logged composition data matrix of predictor variables (rows = samples, columns = variables)
+#' @param lam sequence of tuning parameters for regularization (passed to \code{cdmm} function). The function will choose the optimized one in the parameter sequence. If missing,an automatic sequence is generated based on data (see \code{nlam} and \code{rlam}).
+#' @param nlam number of lambda values in the automatic sequence (default: 100)
+#' @param rlam ratio of the smallest to largest lambda in the automatic sequence (default: 1/nlam)
+#' @param mu regularization parameter for the compositional constraint, passed to \code{cdmm} functionm (default: 1).
+#' @param std logical indicator for data standardization: TRUE (default) standardizes predictors and centers the response; FALSE uses raw data
 #' @param type character specifying the GIC type: "bic" (default, Bayesian Information Criterion),
 #'             "aic" (Akaike Information Criterion), or "ft" (Frequentist T-test criterion)
-#' @param constr logical indicating whether to enforce compositional constraints in CDMM:
-#'               TRUE (default, uses standard CDMM) or FALSE (disables constraints via \code{mu=0})
 #'
 #' @return a list containing the following components:
 #'   \item{bet}{optimal coefficient vector corresponding to the lambda with minimum GIC}
 #'   \item{lam}{optimal tuning parameter (lambda) selected by minimum GIC}
 #'   \item{int}{intercept term corresponding to the optimal lambda (from CDMM results)}
 #' @export
-gic.cdmm <- function(y, x, lam, type="bic", constr=TRUE) {
-	if (constr)
-		res <- cdmm(y, x, lam)
-	else
-		res <- cdmm(y, x, lam, mu=0, maxit=c(50, 1))
+gic.cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, type="bic") {
+  if (missing(lam))
+    res <- cdmm(y, x, nlam = nlam, rlam = rlam, mu=mu, std=std)
+  else
+    res <- cdmm(y, x, lam, mu=mu, std=std)
+
+	res <- cdmm(y, x, lam)
+
 	n <- length(y)
-	fit <- log(colMeans((y - matrix(res$int, n, length(res$lam), byrow=TRUE) - x %*% res$sol)^2))
+	fit <- log(colMeans((y - matrix(res$int, n, length(res$lam), byrow=TRUE) - x %*% res$bet)^2))
 	a <- switch(type, bic=log(n), aic=2, ft=log(log(n))*log(max(ncol(x), n)))/n
-	if (constr)
-		gics <- fit + a*(colSums(res$sol != 0) - 1)
-	else
-		gics <- fit + a*colSums(res$sol != 0)
+	gics <- fit + a*(colSums(res$bet != 0) - 1)
 	ilam <- which.min(gics)
-	list(bet=res$sol[, ilam], lam=res$lam[ilam], int=res$int[ilam])
+	list(bet=res$bet[, ilam], lam=res$lam[ilam], int=res$int[ilam])
 }
 
-#' Cross-Validation for CDMM Model Selection
+#' CDMM Model Selection By Cross-Validation
+#' @description \code{cv.cdmm} is used to choose tuning parameter \code{lam} for \code{cdmm} by the way of k-fold cross validation.
 #'
 #' @param y numeric vector of the response variable
-#' @param x n x p composition data matrix of predictor variables (rows = samples, columns = variables)
+#' @param x n x p logged composition data matrix of predictor variables (rows = samples, columns = variables)
 #' @param lam sequence of tuning parameters for regularization (passed to \code{cdmm} function). If missing,
 #'            an automatic sequence is generated based on data (see \code{nlam} and \code{rlam}).
 #' @param nlam number of lambda values in the automatic sequence (default: 100)
@@ -100,9 +105,9 @@ gic.cdmm <- function(y, x, lam, type="bic", constr=TRUE) {
 #'
 #' @export
 cv.cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, foldid, nfold=5, refit=FALSE, type="min") {
-
+  constr = TRUE
   if (missing(lam))
-    res <- cdmm(y, x, mu=mu, std=std)
+    res <- cdmm(y, x, nlam = nlam, rlam = rlam, mu=mu, std=std)
   else
     res <- cdmm(y, x, lam, mu=mu, std=std)
 
@@ -160,7 +165,6 @@ cv.cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, foldid, nf
 #'   \item{prob}{numeric vector of maximum selection probabilities: each entry is the highest frequency
 #'               of selection for a predictor across all lambda values}
 #'
-#' @export
 stab.cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, nsample=100, nsub=floor(0.5*length(y)), constr=TRUE, seed=213) {
 	set.seed(seed)
 	if (missing(lam)) {

@@ -2,17 +2,17 @@
 #' Covariance Estimation for Compositional Data Via Composition-Adjusted Thresholding
 #'
 #' @param x n x p composition data matrix (row/column is sample/variable)
-#' @param lambda tuning parameter for thresholding
+#' @param lam tuning parameter for thresholding
 #' @param soft indicator for thresholding method: 1 for soft thresholding (default), 0 for hard thresholding
 #'
 #' @return a list containing following components:
 #'    \item{sigma}{covariance matrix }
 #'    \item{corr}{correlation matrx derived from the covariance matrix}
-#'    \item{lambda}{the tuning parameter used}
+#'    \item{lam}{the tuning parameter used}
 #'
 #' @export
 #'
-coat <- function(x, lambda, soft = 1){
+coat <- function(x, lam, nlam=100, soft = 1){
   n <- nrow(x)
   p <- ncol(x)
   clrX <- log(x) - rowSums(log(x)) %*%matrix(1,1,p) / p
@@ -21,16 +21,26 @@ coat <- function(x, lambda, soft = 1){
   theta <- (t(centered.x)^2)%*%(centered.x^2)/n - cov^2
   delta <- cov/(theta^0.5)
   delta <- abs(delta - diag(diag(delta)))
-  sigma <- adaptThreshold(cov, theta, lambda, soft)
-  corr <- diag(diag(sigma)^(-0.5))%*%sigma%*%diag(diag(sigma)^(-0.5))
 
-  return(list(sigma = sigma, corr = corr, lambda = lambda))
+  if(missing(lam)){
+    gridInfo <- adaptThresholdRange(clrX)
+    lam <- gridInfo$lower + (gridInfo$upper - gridInfo$lower)*rep(1:nlam)/nlam
+  }
+  nlam = length(lam)
+  sigma = array(dim=c(nlam, p, p))
+  corr = array(dim=c(nlam, p, p))
+  for(i in 1:nlam){
+    sigmai <- adaptThreshold(cov, theta, lam[i], soft)
+    sigma[i,,] <- sigmai
+    corr[i,,] <- diag(diag(sigmai)^(-0.5))%*%sigmai%*%diag(diag(sigmai)^(-0.5))
+  }
+
+  return(list(sigma = sigma, corr = corr, lam = lam))
 }
 #' Select Tunning Parameter for COAT Via Cross-Validation
 #'
 #' @param x n x p composition data matrix (row/column is sample/variable)
-#' @param lambda tuning parameter for thresholding. Can be a numeric value, a sequence of values,
-#'               or 'auto' (default) to automatically generate a grid of values for cross-validation
+#' @param lam tuning parameters for thresholding. The function will choose the optimized one in the parameter sequence.. If missing, a sequence will be automatically generated based on data.
 #' @param nfold number of folds for cross-validation (default: 5)
 #' @param soft indicator for thresholding method: 1 for soft thresholding (default), 0 for hard thresholding
 #'
@@ -41,22 +51,23 @@ coat <- function(x, lambda, soft = 1){
 #'   \item{lambda}{optimal tuning parameter selected via cross-validation}
 #' @export
 #'
-cv.coat <- function(x, lambda = 'auto', nfold = 5, soft = 1){
+cv.coat <- function(x, lam, nfold = 5, foldid=NULL, soft = 1){
   startTime <- proc.time()
   p <- ncol(x)
   clrX <- log(x) - rowSums(log(x)) %*%matrix(1,1,p) / p
-  if(identical(lambda, 'auto')){
-    coatPred <- adaptThresoldCov(clrX, nFolder=nfold, soft = soft, autoGrid = TRUE)
+
+  if(missing(lam)){
+    coatPred <- adaptThresoldCov(clrX, nFolder=nfold, foldid=foldid, soft = soft, autoGrid = TRUE)
   }
   else{
-    coatPred <- adaptThresoldCov(clrX, nFolder=nfold, soft = soft, autoGrid = FALSE, grid = lambda)
+    coatPred <- adaptThresoldCov(clrX, nFolder=nfold, foldid=foldid, soft = soft, autoGrid = FALSE, grid = lam)
   }
   sigma <- coatPred$sigma
   corr <- coatPred$corr
   lambda_chosen <- coatPred$lambda
   exeTimeClass <- proc.time() - startTime
   exeTime <- as.numeric(exeTimeClass[3])
-  return(list(sigma = sigma, corr = corr, time = exeTime, lambda = lambda_chosen))
+  return(list(sigma = sigma, corr = corr, time = exeTime, lam = lambda_chosen))
 }
 
 #----------------------------------------------------------------------------------------
@@ -70,7 +81,7 @@ cv.coat <- function(x, lambda = 'auto', nfold = 5, soft = 1){
 #        corr ------ correlation estimation based on adaptive thresholding
 #----------------------------------------------------------------------------------------
 
-adaptThresoldCov <- function(x, nFolder = 5, soft = 1, autoGrid=TRUE, grid=c()){
+adaptThresoldCov <- function(x, nFolder = 5, foldid=NULL, soft = 1, autoGrid=TRUE, grid=c()){
   n <- nrow(x)
   p <- ncol(x)
   # Set the grid for the choice of tuning parameter
@@ -83,7 +94,16 @@ adaptThresoldCov <- function(x, nFolder = 5, soft = 1, autoGrid=TRUE, grid=c()){
     grid = grid
   }
   # Multi-folder cross validation
-  part <- 1 + sample(c(1:n))%%nFolder
+  if(is.null(foldid)) {
+    part <- 1 + sample(c(1:n))%%nFolder
+  }
+  else if(length(foldid) != n){
+    warning('length of foldid is different from row numbers of x, foldid will not be used')
+    part <- 1 + sample(c(1:n))%%nFolder
+  }
+  else{
+    part <- foldid
+  }
   error <- matrix(0, nFolder, nGrid)
   for (i in 1:nFolder){
     xTest <- x[which(part == i),]
