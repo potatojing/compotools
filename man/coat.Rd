@@ -2,14 +2,14 @@
 % Please edit documentation in R/coat.R
 \name{coat}
 \alias{coat}
-\title{Covariance Estimation for Compositional Data Via Composition-Adjusted Thresholding}
+\title{Covariance Estimation for Compositional Data}
 \usage{
-coat(x, lambda, soft = 1)
+coat(x, lam, nlam = 100, soft = 1)
 }
 \arguments{
 \item{x}{n x p composition data matrix (row/column is sample/variable)}
 
-\item{lambda}{tuning parameter for thresholding}
+\item{lam}{tuning parameter for thresholding}
 
 \item{soft}{indicator for thresholding method: 1 for soft thresholding (default), 0 for hard thresholding}
 }
@@ -17,8 +17,8 @@ coat(x, lambda, soft = 1)
 a list containing following components:
 \item{sigma}{covariance matrix }
 \item{corr}{correlation matrx derived from the covariance matrix}
-\item{lambda}{the tuning parameter used}
+\item{lam}{the tuning parameter used}
 }
 \description{
-Covariance Estimation for Compositional Data Via Composition-Adjusted Thresholding
+\code{coat} is used to estimate the covariance matrix of basis data based on the compositional data.
 }

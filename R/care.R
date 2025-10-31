@@ -11,54 +11,54 @@
 #     computes the estimators of Omega under different tuning parameters.
 #----------------------------------------------------------------------------------------------#
 library(PRIMAL)
-#' cv.care
-#' Use k-fold crossing-validation to find optimal lambda for each column.
+library(Rglpk)
+#' Select Tunning Parameter for CARE Via Cross-Validation
+#' @description
+#' \code{cv.care} uses k-fold cross-validation to find optimal tuning parameter for \code{care}.
 #' @param x n x p composition data matrix (row/column is sample/variable)
-#' @param nlambda the number of tuning parameters(50 in default)
-#' @param lambda_min the minimal tuning parameter(0.01 in default)
+#' @param nlam the number of tuning parameters(50 in default)
+#' @param minlam the minimal tuning parameter(0.01 in default)
 #' @param nfold the number of sample splitting(5 in default)
 #'
 #' @return a list containing following components:
-#'        \item{Omega_hat} (p * p) matrix,
-#'           the estimator of Omega under the selected tuning parameter;
-#'       \item{lambda_op}, (p * 1) vector,
-#'           the selected tuning parameter for each column.
+#'        \item{prec} the estimator of precision matrix under the selected tuning parameters;
+#'       \item{lam} the selected tuning parameter for each column.
 #' @export
 #'
-cv.care <- function(x,  nlambda=50, lambda_min=0.01, nfold=5){
-  return(Kfold_Care_est(x, nlambda=nlambda, lambda_min=lambda_min, nfold = nfold))
+cv.care <- function(x,  nlam=50, minlam=0.01, nfold=5){
+  x = as.matrix(x)
+  return(Kfold_Care_est(x, nlambda=nlam, lambda_min=minlam, nfold = nfold))
 }
-#' Title
+#' Estimate Precision Matrix for Compositional Data
+#' @description
+#' \code{care} is used to estimate the precision matrix of the basis data based on the compositional data.
 #'
 #' @param x n x p composition data matrix (row/column is sample/variable).
-#' @param lambda_vec a p length vector of lambda for each column.
-#' @param max_it The solution process will stop when the number of iterations exceeds \code{max_it}(default 50).
+#' @param lam tuning parameter(s). It is either a vector or a single number. If it is a vector, each value in the vector corresponds to the parameter of a column; if it is a single number, this number is used as the parameter for every column.
 #'
 #' @return a list containing following components:
-#'        \item{Omega_hat} (p * p) matrix,
-#'           the estimator of Omega under the given tuning parameter;
-#'       \item{lambda_op}, (p * 1) vector,
-#'           the given tuning parameter for each column.
-#' @export
-care <- function(x, lambda_vec, max_it = 50){
+#'
+#'    \item{prec} the estimator of precision matrix under the user-specified tuning parameters;
+#'    \item{lam} the given tuning parameter for each column.
+
+
+care <- function(x, lam){
   n <- nrow(x)
   p <- ncol(x)
-  Omega_hat = matrix(rep(0, p*p), nrow = p, ncol = p)
-  for(i in 1:p){
-    lambda <- lambda_vec[i]
-    output <- Care_col(i, x, nlambda = max_it, lambda_min = lambda/2)
-    if(any(output$lambda_vec < lambda)){
-      index <- max(which(output$lambda_vec > lambda),1)
-    }
-    else{
-      index <- length(output$lambda_vec)
-      warning('Error: column ', i, ' of the result may be unprecise. Increase max_it to solve this problem')
-    }
-    Omega_hat[,i] <- output$omega_hat_mat[,index]
+  x = as.matrix(x)
+  if(length(lam) == 1) lam = rep(lam, p)
+  else if (length(lam) == p) lam = lam
+  else stop('Error: lam must be a number or a vector of length p(number of x columns)')
+
+  Omega_hat = matrix(nrow = p, ncol = p)
+  for(j in 1:p){
+    Omega_hat[,j] = Care_col_lam(j, x, lam[j])$omega_hat
   }
+
   Omega_hat <- Omega_hat * (abs(Omega_hat) <= abs(t(Omega_hat))) +
     t(Omega_hat) * (abs(Omega_hat) > abs(t(Omega_hat)))
-  return(list(Omega_hat=Omega_hat, lambda_vec=lambda_vec))
+
+  return(list(prec=Omega_hat, lam=lam))
 }
 Care_col <- function(col_num, X, nlambda, lambda_min){
   #----------------------------------------------------------------------#
@@ -97,6 +97,25 @@ Care_col <- function(col_num, X, nlambda, lambda_min){
   solution <- as.matrix(output$beta)[1 : (2 * p), ]
   omega_hat_mat<- solution[1 : p, ] - solution[(p + 1) : (2 * p), ]
   return(list(omega_hat_mat = omega_hat_mat, lambda_vec = lambda_vec))
+}
+
+Care_col_lam <- function(col_num, X, lam){
+  n <- nrow(X)
+  p <- ncol(X)
+  G <- diag(p) - matrix(1, p, p) / p
+  Z <- log(X) %*% G
+  Sigma_c_hat <- cov(Z) * (1 - 1 / n)
+  A <- cbind(rbind(Sigma_c_hat, -Sigma_c_hat),
+             rbind(-Sigma_c_hat, Sigma_c_hat))
+
+  b <- c(rep(lam,p) + diag(p)[, col_num] - rep(1, p) / p,
+         rep(lam,p) - diag(p)[, col_num] + rep(1, p) / p)
+  c <- rep(1, 2*p)
+
+  output <- Rglpk_solve_LP(c, A, rep('<=', 2*p), b, max=FALSE)
+  solution = output$solution
+  omega_hat_mat<- solution[1:p] - solution[(p+1):(2*p)]
+  return(list(omega_hat_mat = omega_hat_mat, lam=lam))
 }
 
 
@@ -207,7 +226,7 @@ Kfold_Care_est <- function(X, nlambda, lambda_min=0.01, nfold=5){
   }
   Omega_hat <- Omega_hat * (abs(Omega_hat) <= abs(t(Omega_hat))) +
     t(Omega_hat) * (abs(Omega_hat) > abs(t(Omega_hat)))
-  return(list(Omega_hat = Omega_hat, lambda_op = lambda_op))
+  return(list(prec = Omega_hat, lam = lambda_op))
 }
 
 

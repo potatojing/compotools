@@ -1,5 +1,7 @@
 
-#' Covariance Estimation for Compositional Data Via Composition-Adjusted Thresholding
+#' Covariance Estimation for Compositional Data
+#' @description
+#' \code{coat} is used to estimate the covariance matrix of basis data based on the compositional data.
 #'
 #' @param x n x p composition data matrix (row/column is sample/variable)
 #' @param lam tuning parameter for thresholding
@@ -38,7 +40,8 @@ coat <- function(x, lam, nlam=100, soft = 1){
   return(list(sigma = sigma, corr = corr, lam = lam))
 }
 #' Select Tunning Parameter for COAT Via Cross-Validation
-#'
+#' @description
+#' \code{cv.coat} is used to choose tuning parameter \code{lam} for \code{coat} by the way of k-fold cross validation.
 #' @param x n x p composition data matrix (row/column is sample/variable)
 #' @param lam tuning parameters for thresholding. The function will choose the optimized one in the parameter sequence.. If missing, a sequence will be automatically generated based on data.
 #' @param nfold number of folds for cross-validation (default: 5)

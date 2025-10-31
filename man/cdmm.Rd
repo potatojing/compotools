@@ -2,8 +2,7 @@
 % Please edit documentation in R/cdmm.R
 \name{cdmm}
 \alias{cdmm}
-\title{Variable selection in regression with compositional variables
-\code{cdmm} is used to perform variable selection and fit a linear log-contrast model where the predictor variables are compositional data.}
+\title{Variable selection in regression with compositional variables}
 \usage{
 cdmm(
   y,
@@ -12,6 +11,7 @@ cdmm(
   nlam = 100,
   rlam = 1/nlam,
   mu = 1,
+  logged = FALSE,
   std = TRUE,
   maxv = 0.4 * length(y),
   maxit = c(20, 50),
@@ -49,6 +49,5 @@ a list containing the following components:
 \item{int}{intercept term (all are 0 if std=FALSE)}
 }
 \description{
-Variable selection in regression with compositional variables
 \code{cdmm} is used to perform variable selection and fit a linear log-contrast model where the predictor variables are compositional data.
 }

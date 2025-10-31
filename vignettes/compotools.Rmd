@@ -26,23 +26,23 @@ nreads = rowSums(x) # how many reads a sample has
 mean(nreads)
 sd(nreads)
 ```
-Since the number of sequencing reads varied greatly across samples, these count data should not be used directly in a standard regression analysis. So we transform them into compositonal data and then log them. As we are to use log-contrast model to analyse the data, we replace zero counts by the maximum rounding error 0·5 before transforming them.
+Since the number of sequencing reads varied greatly across samples, these count data should not be used directly in a standard regression analysis. So we transform them into compositional data and then log them. As we are to use log-contrast model to analyse the data, we replace zero counts by the maximum rounding error 0·5 before transforming them.
 ```{r data_transform, include=TRUE}
 x[x==0] = 0.5
 x = x/rowSums(x)
-z = log(as.matrix(x))
+
 ```
 Use \code{cv.cdmm} to choose optimized tunning parameter and fit a model.
 ```{r cdmm, include=TRUE}
 set.seed(1234)
-n = nrow(z)
+n = nrow(x)
 train_idx = sample(1:n, size = floor(n*0.7))
-zt = z[train_idx,]
+xt = x[train_idx,]
 yt = y[train_idx]
-zv = z[-train_idx,]
+xv = x[-train_idx,]
 yv = y[-train_idx]
 
-model = cv.cdmm(yt, zt)
+model = cv.cdmm(yt, xt)
 model
 ```
 Genera corresponding to none-zero coefficients are selected.
@@ -52,12 +52,12 @@ colnames(x)[model$bet != 0]
 We use \code{cdmm} with \code{lam = 0} to train a refitted model on the selected genera.
 ```{r refitted_model, include=TRUE}
 selected = model$bet != 0
-refitted_model = cdmm(yt, zt[,selected], lam = 0)
+refitted_model = cdmm(yt, xt[,selected], lam = 0)
 refitted_model
 ```
 Use refitted model to predict bmi.
 ```{r predict, include=TRUE, fig.width=6, fig.height=6, dpi=300}
-yp <- refitted_model$int + zv[, selected] %*% refitted_model$bet
+yp <- refitted_model$int + log(as.matrix(xv[, selected])) %*% refitted_model$bet
 ran = range(c(yv, yp))
 
 plot(yv, yp, 
@@ -83,6 +83,15 @@ The test gives a p value of about 0.001, indicating a marked difference between 
 ### Covariance Estimate for Compositional Data
 
 ```{r cv.coat}
-foldid = sample(1:nrow(xle)) %% 5
-rcv = cv.coat(xle, foldid = foldid)
+rcv = cv.coat(xle)
 ```
+
+### PrecisionMatrixEstimationforCompositionalData
+
+```{r cv.care}
+cv.care.r = cv.care(xle)
+```
+```{r care}
+care.r = care(xle, lam = cv.care.r$lam)
+```
+

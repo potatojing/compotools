@@ -25,8 +25,9 @@ NULL
 #'   \item{int}{intercept term (all are 0 if std=FALSE)}
 #' @export
 #'
-cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, maxv=0.4*length(y), maxit=c(20, 50), tol=c(1e-4, 1e-7)) {
-	if (std) {
+cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, logged=FALSE, std=TRUE, maxv=0.4*length(y), maxit=c(20, 50), tol=c(1e-4, 1e-7)) {
+	if(!logged) x = log(as.matrix(x))
+  if (std) {
 		y <- scale(y, scale=FALSE)
 		x <- scale(x, scale=apply(x, 2, sd)*sqrt(nrow(x)-1))
 		fac <- 1/attr(x, "scaled:scale")
@@ -63,10 +64,11 @@ cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, maxv=0.4*leng
 #'   \item{int}{intercept term corresponding to the optimal lambda (from CDMM results)}
 #' @export
 gic.cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, type="bic") {
+  x = log(as.matrix(x))
   if (missing(lam))
-    res <- cdmm(y, x, nlam = nlam, rlam = rlam, mu=mu, std=std)
+    res <- cdmm(y, x, nlam = nlam, rlam = rlam, mu=mu, std=std, logged=TRUE)
   else
-    res <- cdmm(y, x, lam, mu=mu, std=std)
+    res <- cdmm(y, x, lam, mu=mu, std=std, logged=TRUE)
 
 	res <- cdmm(y, x, lam)
 
@@ -106,10 +108,13 @@ gic.cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, type="bic
 #' @export
 cv.cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, foldid, nfold=5, refit=FALSE, type="min") {
   constr = TRUE
+
+  x = log(as.matrix(x))
+
   if (missing(lam))
-    res <- cdmm(y, x, nlam = nlam, rlam = rlam, mu=mu, std=std)
+    res <- cdmm(y, x, nlam = nlam, rlam = rlam, mu=mu, std=std, logged=TRUE)
   else
-    res <- cdmm(y, x, lam, mu=mu, std=std)
+    res <- cdmm(y, x, lam, mu=mu, std=std, logged=TRUE)
 
 	if (missing(foldid)) foldid <- sample(rep(1:nfold, length=length(y)))
 	pred <- matrix(, nfold, length(res$lam))
@@ -117,20 +122,20 @@ cv.cdmm <- function(y, x, lam, nlam=100, rlam=1/nlam, mu=1, std=TRUE, foldid, nf
 		yt <- y[foldid != i]; xt <- x[foldid != i, ]
 		yv <- y[foldid == i]; xv <- x[foldid == i, ]
 		if (constr) {
-			fit <- cdmm(yt, xt, res$lam, mu=mu, std=std, maxv=Inf)
+			fit <- cdmm(yt, xt, res$lam, mu=mu, std=std, maxv=Inf,logged=TRUE)
 			if (refit) for (j in 1:length(res$lam)) {
 				supp <- fit$bet[, j] != 0
 				if (any(supp)) {
-					ans <- cdmm(yt, as.matrix(xt[, supp]), 0, mu=mu, std=std, maxv=Inf)
+					ans <- cdmm(yt, as.matrix(xt[, supp]), 0, mu=mu, std=std, maxv=Inf, logged=TRUE)
 					fit$bet[supp, j] <- ans$bet; fit$int[j] <- ans$int
 				}
 			}
 		} else {
-			fit <- cdmm(yt, xt, res$lam, mu=0, std=std, maxv=Inf, maxit=c(50, 1))
+			fit <- cdmm(yt, xt, res$lam, mu=0, std=std, maxv=Inf, maxit=c(50, 1), logged=TRUE)
  			if (refit) for (j in 1:length(res$lam)) {
-				supp <- fit$sol[, j] != 0
+				supp <- fit$bet[, j] != 0
 				if (any(supp)) {
-					ans <- cdmm(yt, as.matrix(xt[, supp]), 0, mu=0, std=std, maxv=Inf, maxit=c(50, 1))
+					ans <- cdmm(yt, as.matrix(xt[, supp]), 0, mu=0, std=std, maxv=Inf, maxit=c(50, 1),logged=TRUE)
 					fit$bet[supp, j] <- ans$bet; fit$int[j] <- ans$int
 				}
 			}

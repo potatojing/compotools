@@ -2,7 +2,7 @@
 % Please edit documentation in R/two_sample_test.R
 \name{cd.test}
 \alias{cd.test}
-\title{Title}
+\title{Two Samples Test for Compositional Data}
 \usage{
 cd.test(x1, x2, paired = FALSE)
 }
@@ -11,11 +11,11 @@ cd.test(x1, x2, paired = FALSE)
 
 \item{x2}{another numeric vector of compositional data values}
 
-\item{paired}{a logical indicating whether you want a paired test}
+\item{paired}{logical indicator for whether you want a paired test}
 }
 \value{
 the p-value for the test
 }
 \description{
-Title
+\code{cd.test} is used to assess whether there are significant differences between two compositional data samples.
 }

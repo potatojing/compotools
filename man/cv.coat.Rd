@@ -4,13 +4,12 @@
 \alias{cv.coat}
 \title{Select Tunning Parameter for COAT Via Cross-Validation}
 \usage{
-cv.coat(x, lambda = "auto", nfold = 5, soft = 1)
+cv.coat(x, lam, nlam = 100, nfold = 5, foldid = NULL, soft = 1)
 }
 \arguments{
 \item{x}{n x p composition data matrix (row/column is sample/variable)}
 
-\item{lambda}{tuning parameter for thresholding. Can be a numeric value, a sequence of values,
-or 'auto' (default) to automatically generate a grid of values for cross-validation}
+\item{lam}{tuning parameters for thresholding. The function will choose the optimized one in the parameter sequence.. If missing, a sequence will be automatically generated based on data.}
 
 \item{nfold}{number of folds for cross-validation (default: 5)}
 
@@ -24,5 +23,5 @@ a list containing following components:
 \item{lambda}{optimal tuning parameter selected via cross-validation}
 }
 \description{
-Select Tunning Parameter for COAT Via Cross-Validation
+\code{cv.coat} is used to choose tuning parameter \code{lam} for \code{coat} by the way of k-fold cross validation.
 }

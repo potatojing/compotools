@@ -2,24 +2,21 @@
 % Please edit documentation in R/care.R
 \name{care}
 \alias{care}
-\title{Title}
+\title{Estimate Precision Matrix for Compositional Data}
 \usage{
-care(x, lambda_vec, max_it = 50)
+care(x, lam)
 }
 \arguments{
 \item{x}{n x p composition data matrix (row/column is sample/variable).}
 
-\item{lambda_vec}{a p length vector of lambda for each column.}
-
-\item{max_it}{The solution process will stop when the number of iterations exceeds \code{max_it}(default 50).}
+\item{lam}{tuning parameter(s). It is either a vector or a single number. If it is a vector, each value in the vector corresponds to the parameter of a column; if it is a single number, this number is used as the parameter for every column.}
 }
 \value{
 a list containing following components:
-\item{Omega_hat} (p * p) matrix,
-the estimator of Omega under the given tuning parameter;
-\item{lambda_op}, (p * 1) vector,
-the given tuning parameter for each column.
+
+\item{prec} the estimator of precision matrix under the user-specified tuning parameters;
+\item{lam} the given tuning parameter for each column.
 }
 \description{
-Title
+\code{care} is used to estimate the precision matrix of the basis data based on the compositional data.
 }

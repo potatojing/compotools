@@ -2,28 +2,24 @@
 % Please edit documentation in R/care.R
 \name{cv.care}
 \alias{cv.care}
-\title{cv.care
-Use k-fold crossing-validation to find optimal lambda for each column.}
+\title{Select Tunning Parameter for CARE Via Cross-Validation}
 \usage{
-cv.care(x, nlambda = 50, lambda_min = 0.01, nfold = 5)
+cv.care(x, nlam = 50, minlam = 0.01, nfold = 5)
 }
 \arguments{
 \item{x}{n x p composition data matrix (row/column is sample/variable)}
 
-\item{nlambda}{the number of tuning parameters(50 in default)}
+\item{nlam}{the number of tuning parameters(50 in default)}
 
-\item{lambda_min}{the minimal tuning parameter(0.01 in default)}
+\item{minlam}{the minimal tuning parameter(0.01 in default)}
 
 \item{nfold}{the number of sample splitting(5 in default)}
 }
 \value{
 a list containing following components:
-\item{Omega_hat} (p * p) matrix,
-the estimator of Omega under the selected tuning parameter;
-\item{lambda_op}, (p * 1) vector,
-the selected tuning parameter for each column.
+\item{prec} the estimator of precision matrix under the selected tuning parameters;
+\item{lam} the selected tuning parameter for each column.
 }
 \description{
-cv.care
-Use k-fold crossing-validation to find optimal lambda for each column.
+\code{cv.care} uses k-fold cross-validation to find optimal tuning parameter for \code{care}.
 }
